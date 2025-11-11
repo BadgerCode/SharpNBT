@@ -1,23 +1,13 @@
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using SharpNBT.SNBT;
+using System.IO;
+using System.Text;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace SharpNBT.Tests
 {
-    public class StringifiedTest
+    public class StringifiedTest(ITestOutputHelper output)
     {
-        private readonly ITestOutputHelper output;
-        
-        
-        public StringifiedTest(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
-
         [Fact]
         public void BigOutput()
         {
@@ -57,6 +47,20 @@ namespace SharpNBT.Tests
 
             var tag = StringNbt.Parse(testString);
             output.WriteLine(tag.PrettyPrinted());
+        }
+
+        [Fact]
+        public void ParseIntArrayWithNegativeNumbers()
+        {
+            const string testString = "{uuid:[I; 123, 0, 2147483647, -1]}";
+            var tag = StringNbt.Parse(testString);
+
+            var array = tag.Get<ArrayTag<int>>("uuid");
+            Assert.Equal(4, array.Count);
+            Assert.Equal(123, array[0]);
+            Assert.Equal(0, array[1]);
+            Assert.Equal(2147483647, array[2]);
+            Assert.Equal(-1, array[3]);
         }
     }
 }
