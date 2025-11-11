@@ -1,10 +1,10 @@
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
-using JetBrains.Annotations;
 
 namespace SharpNBT.SNBT;
 
@@ -55,7 +55,7 @@ public static class StringNbt
         scanner.AssertChar('{');
         return ParseCompound(null, ref scanner);
     }
-    
+
     /// <summary>
     /// Parse the given <paramref name="source"/> text into a <see cref="ListTag"/>.
     /// </summary>
@@ -71,11 +71,11 @@ public static class StringNbt
         scanner.AssertChar('[');
         return ParseList(null, ref scanner);
     }
-    
+
     private static CompoundTag ParseCompound(string? name, ref Scanner scanner)
     {
         scanner.MoveNext(true, true);
-        
+
         // For the case of "{}", return empty compound tag. 
         var result = new CompoundTag(name);
         if (scanner.Current == '}')
@@ -85,17 +85,17 @@ public static class StringNbt
         {
             // Read the name of the tag
             var childName = ParseString(ref scanner, out _);
-            
+
             // Move to and asser the next significant character is a deliminator.
             scanner.MoveNext(true, true);
             scanner.AssertChar(':');
-            
+
             // Move to and parse the tag value
             scanner.MoveNext(true, true);
             var tag = ParseTag(childName, ref scanner);
             result.Add(tag);
             scanner.MoveNext(true, true);
-            
+
             // Comma encountered, read another tag.
             if (scanner.Current == ',')
             {
@@ -109,7 +109,7 @@ public static class StringNbt
                 // scanner.MoveNext(true, false);
                 break;
             }
-            
+
             // Invalid character
             scanner.SyntaxError($"Expected ',' or '}}', got '{scanner.Current}'.");
         }
@@ -139,7 +139,7 @@ public static class StringNbt
         var escape = false;
         var closed = false;
         var sb = new StringBuilder();
-        
+
         while (scanner.MoveNext(false, false))
         {
             if (escape)
@@ -169,7 +169,7 @@ public static class StringNbt
             scanner.SyntaxError("Improperly terminated string.");
         return sb.ToString();
     }
-    
+
     private static string ParseUnquotedString(ref Scanner scanner)
     {
         var start = scanner.Position;
@@ -202,7 +202,7 @@ public static class StringNbt
         var value = ParseString(ref scanner, out var quoted);
         if (quoted || value.Length == 0)
             return new StringTag(name, value);
-        
+
         // Early out for true/false values
         if (bool.TryParse(value, out var boolean))
             return new ByteTag(name, boolean);
@@ -216,7 +216,7 @@ public static class StringNbt
 
             if (int.TryParse(value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var i32))
                 return new IntTag(name, i32);
-        } 
+        }
         else if (TryParseNumber(name, value, suffix, out var tag))
         {
             return tag;
@@ -228,17 +228,17 @@ public static class StringNbt
             if (int.TryParse(value[2..], NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out var hex))
                 return new IntTag(name, hex);
         }
-        
+
         // When all else fails, is could only have been an unquoted string
         return new StringTag(name, value);
     }
-    
+
     private static bool TryParseNumber(string? name, string value, char suffix, out Tag tag)
     {
         // A much less complicated char.ToLower()
         if (suffix >= 'a')
-            suffix -= (char) 32;
-        
+            suffix -= (char)32;
+
         switch (suffix)
         {
             case 'B':
@@ -277,11 +277,11 @@ public static class StringNbt
                 }
                 break;
         }
-        
+
         tag = null!;
         return false;
     }
-    
+
     private static Tag ParseArray(string? name, ref Scanner scanner)
     {
         scanner.MoveNext(true, true);
@@ -289,9 +289,9 @@ public static class StringNbt
             return new ListTag(name, TagType.End);
 
         // No type-prefix, must be a ListTag
-        if (scanner.Peek() != ';') 
+        if (scanner.Peek() != ';')
             return ParseList(name, ref scanner);
-        
+
         // This is an array of integral values
         var prefix = scanner.Current;
         scanner.Position += 2;
@@ -311,9 +311,9 @@ public static class StringNbt
         {
             var child = ParseTag(null, ref scanner);
             list.Add(child);
-            
+
             scanner.MoveNext(true, true);
-            
+
             // Comma encountered, read another tag.
             if (scanner.Current == ',')
             {
@@ -326,7 +326,7 @@ public static class StringNbt
             {
                 break;
             }
-            
+
             // Invalid character
             scanner.SyntaxError($"Expected ',' or ']', got '{scanner.Current}'.");
         }
@@ -349,7 +349,8 @@ public static class StringNbt
             var c = char.ToLowerInvariant(scanner.Current);
             if (c == ']')
                 break;
-            if (char.IsNumber(c) || c == ',')
+            if (char.IsNumber(c) || c == '-' || c == ',')
+                //if (char.IsNumber(c) || c == ',')
                 continue;
             if (c is not ('b' or 'l'))
                 scanner.SyntaxError($"Invalid character '{c}' in integer array.");
@@ -357,14 +358,14 @@ public static class StringNbt
 
         var span = scanner.Source.Slice(start, scanner.Position - start);
         var strings = new string(span).Split(SplitSeparators, SplitOpts);
-        
+
         var values = new T[strings.Length];
         for (var i = 0; i < values.Length; i++)
             values[i] = T.Parse(strings[i], NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
-        
+
         return values;
     }
-    
+
     private const StringSplitOptions SplitOpts = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries;
     private static readonly char[] SplitSeparators = new[] { ',', 'b', 'B', 'l', 'L' };
 }
