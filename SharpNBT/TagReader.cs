@@ -1,9 +1,9 @@
+using JetBrains.Annotations;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 
 namespace SharpNBT;
 
@@ -49,7 +49,7 @@ public class TagReader : TagIO
     public ByteTag ReadByte(bool named = true)
     {
         var name = named ? ReadUTF8String() : null;
-        return new ByteTag(name, (byte) BaseStream.ReadByte());
+        return new ByteTag(name, (byte)BaseStream.ReadByte());
     }
 
     /// <summary>
@@ -75,10 +75,10 @@ public class TagReader : TagIO
             if (SwapEndian)
                 value = value.SwapEndian();
         }
-            
+
         return new ShortTag(name, value);
     }
-        
+
     /// <summary>
     /// Reads a <see cref="IntTag"/> from the stream.
     /// </summary>
@@ -90,7 +90,7 @@ public class TagReader : TagIO
         var name = named ? ReadUTF8String() : null;
         return new IntTag(name, UseVarInt ? VarInt.Read(BaseStream, ZigZagEncoding) : ReadInt32());
     }
-        
+
     /// <summary>
     /// Reads a <see cref="LongTag"/> from the stream.
     /// </summary>
@@ -101,7 +101,7 @@ public class TagReader : TagIO
     {
         var name = named ? ReadUTF8String() : null;
         long value;
-            
+
         if (UseVarInt)
         {
             value = VarLong.Read(BaseStream, ZigZagEncoding);
@@ -114,10 +114,10 @@ public class TagReader : TagIO
             if (SwapEndian)
                 value = value.SwapEndian();
         }
-            
+
         return new LongTag(name, value);
     }
-        
+
     /// <summary>
     /// Reads a <see cref="FloatTag"/> from the stream.
     /// </summary>
@@ -127,13 +127,13 @@ public class TagReader : TagIO
     public FloatTag ReadFloat(bool named = true)
     {
         var name = named ? ReadUTF8String() : null;
-            
+
         var buffer = new byte[sizeof(float)];
         ReadToFixSizedBuffer(buffer, 0, sizeof(float));
         if (SwapEndian)
             Array.Reverse(buffer);
-            
-        return new FloatTag( name, BitConverter.ToSingle(buffer));
+
+        return new FloatTag(name, BitConverter.ToSingle(buffer));
     }
 
     /// <summary>
@@ -150,9 +150,9 @@ public class TagReader : TagIO
         if (SwapEndian)
             Array.Reverse(buffer);
 
-        return new DoubleTag( name, BitConverter.ToDouble(buffer, 0));
+        return new DoubleTag(name, BitConverter.ToDouble(buffer, 0));
     }
-        
+
     /// <summary>
     /// Reads a <see cref="StringTag"/> from the stream.
     /// </summary>
@@ -165,7 +165,7 @@ public class TagReader : TagIO
         var value = ReadUTF8String();
         return new StringTag(name, value);
     }
-        
+
     /// <summary>
     /// Reads a <see cref="ByteArrayTag"/> from the stream.
     /// </summary>
@@ -180,7 +180,7 @@ public class TagReader : TagIO
         ReadToFixSizedBuffer(buffer, 0, count);
         return new ByteArrayTag(name, buffer);
     }
-        
+
     /// <summary>
     /// Reads a <see cref="IntArrayTag"/> from the stream.
     /// </summary>
@@ -191,7 +191,7 @@ public class TagReader : TagIO
     {
         var name = named ? ReadUTF8String() : null;
         var count = ReadCount();
-            
+
         if (UseVarInt)
         {
             var array = new int[count];
@@ -199,11 +199,11 @@ public class TagReader : TagIO
                 array[i] = VarInt.Read(BaseStream, ZigZagEncoding);
             return new IntArrayTag(name, array);
         }
- 
+
         var buffer = new byte[count * sizeof(int)];
         ReadToFixSizedBuffer(buffer, 0, count * sizeof(int));
 
-        Span<int> values = MemoryMarshal.Cast<byte, int>(buffer);
+        Span<int> values = MemoryMarshal.Cast<byte, int>((Span<byte>)buffer);
         if (SwapEndian)
         {
             for (var i = 0; i < count; i++)
@@ -211,7 +211,7 @@ public class TagReader : TagIO
         }
         return new IntArrayTag(name, values);
     }
-        
+
     /// <summary>
     /// Reads a <see cref="LongArrayTag"/> from the stream.
     /// </summary>
@@ -222,7 +222,7 @@ public class TagReader : TagIO
     {
         var name = named ? ReadUTF8String() : null;
         var count = ReadCount();
-            
+
         if (UseVarInt)
         {
             var array = new long[count];
@@ -234,7 +234,7 @@ public class TagReader : TagIO
         var buffer = new byte[count * sizeof(long)];
         ReadToFixSizedBuffer(buffer, 0, count * sizeof(long));
 
-        Span<long> values = MemoryMarshal.Cast<byte, long>(buffer);
+        Span<long> values = MemoryMarshal.Cast<byte, long>((Span<byte>)buffer);
         if (SwapEndian)
         {
             for (var i = 0; i < count; i++)
@@ -242,7 +242,7 @@ public class TagReader : TagIO
         }
         return new LongArrayTag(name, values);
     }
-        
+
     /// <summary>
     /// Reads a <see cref="ListTag"/> from the stream.
     /// </summary>
@@ -254,10 +254,10 @@ public class TagReader : TagIO
         var name = named ? ReadUTF8String() : null;
         var childType = ReadType();
         var count = ReadCount();
-            
+
         if (childType == TagType.End && count > 0)
             throw new FormatException(Strings.InvalidEndTagChild);
-            
+
         var list = new ListTag(name, childType);
         while (count-- > 0)
         {
@@ -265,8 +265,8 @@ public class TagReader : TagIO
         }
         return list;
     }
-        
-        
+
+
     /// <summary>
     /// Reads a <see cref="CompoundTag"/> from the stream.
     /// </summary>
@@ -277,19 +277,19 @@ public class TagReader : TagIO
     {
         var name = named ? ReadUTF8String() : null;
         var compound = new CompoundTag(name);
-            
+
         while (true)
         {
             var type = ReadType();
             if (type == TagType.End)
                 break;
-                
+
             compound.Add(ReadTag(type, true));
         }
 
         return compound;
     }
-        
+
     /// <summary>
     /// Reads a <see cref="Tag"/> from the current position in the stream. 
     /// </summary>
@@ -335,7 +335,7 @@ public class TagReader : TagIO
         var tag = await ReadTagAsync(named);
         return (T)tag;
     }
-        
+
     private Tag ReadTag(TagType type, bool named)
     {
         var result = OnTagEncountered(type, named);
@@ -365,8 +365,8 @@ public class TagReader : TagIO
         OnTagRead(tag);
         return tag;
     }
-        
-        
+
+
     private TagType ReadType()
     {
         try
@@ -398,7 +398,7 @@ public class TagReader : TagIO
 
         if (length == 0)
             return null;
-            
+
         var utf8 = new byte[length];
         ReadToFixSizedBuffer(utf8, 0, length);
         return Encoding.UTF8.GetString(utf8);
@@ -417,7 +417,7 @@ public class TagReader : TagIO
         var value = BitConverter.ToInt32(buffer);
         return SwapEndian ? value.SwapEndian() : value;
     }
-        
+
     /// <summary>
     /// Reads bytes from the streams and stores them into the <paramref name="buffer"/>.
     /// The number of read bytes is dictated by the size of the buffer.
@@ -441,7 +441,7 @@ public class TagReader : TagIO
             totalBytes += readBytes;
         }
     }
-        
+
     /// <summary>
     /// Reads bytes from the streams and stores them into the <paramref name="buffer"/>.
     /// This method ensures that all requested bytes are read.
@@ -482,7 +482,7 @@ public class TagReader : TagIO
     /// Invokes the <see cref="TagRead"/> event when a tag has been fully deserialized from the <see cref="TagIO.BaseStream"/>.
     /// </summary>
     /// <param name="tag">The deserialized <see cref="Tag"/> instance.</param>
-    protected virtual void OnTagRead(Tag tag) =>  TagRead?.Invoke(this, new TagEventArgs(tag.Type, tag));
+    protected virtual void OnTagRead(Tag tag) => TagRead?.Invoke(this, new TagEventArgs(tag.Type, tag));
 
     /// <summary>
     /// Invokes the <see cref="TagEncountered"/> event when the stream is positioned at the beginning of a an unread tag.
@@ -495,7 +495,7 @@ public class TagReader : TagIO
         // Early out if no subscribers.
         if (TagEncountered is null)
             return null;
-            
+
         var args = new TagHandledEventArgs(type, named, BaseStream);
         TagEncountered.Invoke(this, args);
         return args.Handled ? args.Result : null;
